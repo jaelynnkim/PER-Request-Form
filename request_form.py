@@ -1,6 +1,7 @@
 import streamlit as st
 from simple_salesforce import Salesforce, SalesforceLogin
 import os
+from datetime import datetime
 
 # Set the page title and icon - This should be placed at the top
 st.set_page_config(page_title="Request Form", page_icon="📝")
@@ -60,16 +61,58 @@ if secret_input == SECRET_WORD:
         submit_button = st.form_submit_button(label='Submit')
 
         if submit_button:
-            # Create a Case object in Salesforce
             try:
-                case = sf.Case.create({
-                    'Subject': f"Request from {first_name} {last_name}",
-                    'Description': reasoning,
-                    'SuppliedEmail': preferred_email,
-                    'SuppliedName': f"{first_name} {middle_name} {last_name}",
-                    # Replace 'Custom_Field__c' with your Salesforce field name
-                    'Custom_Field__c': 'Yes' if has_urmc_account == 'Yes' else 'No'  
-                })
+                # Query to find the Contact ID based on First Name and Last Name
+                contact_query = f"SELECT Id, AccountId FROM Contact WHERE FirstName = '{first_name}' AND LastName = '{last_name}' LIMIT 1"
+                contact_result = sf.query(contact_query)
+
+                # Initialize ContactId and AccountId as None
+                contact_id = None
+                account_id = None
+
+                # Check if a matching contact is found
+                if contact_result['totalSize'] > 0:
+                    contact_id = contact_result['records'][0]['Id']
+                    account_id = contact_result['records'][0]['AccountId']
+                    
+                # Create a dictionary with the Case fields
+                case_data = {
+                    'RecordTypeId': '012Dn000000FGWvIAO',
+                    'Team__c': 'Information Services',
+                    'Case_Type__c': 'System Access Request',
+                    'Case_Type_Specific__c': 'PER',
+                    'Estimated_Start_Date__c': datetime.now().date().isoformat(),
+                    'System__c': 'PER',
+                    'Severity__c': 'Individual',
+                    'Effort__c': 'Low',
+                    'Status': 'New',
+                    'Priority': 'Medium',
+                    'Reason': 'New problem',
+                    'Origin': 'Email',
+                    'Subject': f"{first_name} {last_name} PER Request Form",
+                    'Description': (
+                        f"First Name: {first_name}\n"
+                        f"Middle Name: {middle_name}\n"
+                        f"Last Name: {last_name}\n"
+                        f"Preferred Email Address: {preferred_email}\n"
+                        f"Job Title: {job_title}\n"
+                        f"Practice Name: {practice_name}\n"
+                        f"Practice Address: {practice_address}\n"
+                        f"Supervisor Full Name: {supervisor_name}\n"
+                        f"Reasoning behind Request: {reasoning}\n"
+                        f"Already have URMC account: {has_urmc_account}"
+                    )
+                }
+
+                # Add ContactId and AccountId to case_data only if they are not None
+                if contact_id:
+                    case_data['ContactId'] = contact_id
+                if account_id:
+                    case_data['AccountId'] = account_id
+
+                # Create the Case object in Salesforce
+                case = sf.Case.create(case_data)
+                
                 st.success("Form submitted successfully and Case created in Salesforce!")
                 # Display submitted data for review
                 st.write("Here's what you've submitted:")
