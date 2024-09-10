@@ -2,11 +2,14 @@ import streamlit as st
 from simple_salesforce import Salesforce, SalesforceLogin
 import os
 
+# Set the page title and icon - This should be placed at the top
+st.set_page_config(page_title="Request Form", page_icon="📝")
+
 # Salesforce credentials from environment variables
 SF_USERNAME = os.getenv("SF_USERNAME")  # No default value; ensure environment variable is set
 SF_PASSWORD = os.getenv("SF_PASSWORD")
 SF_SECURITY_TOKEN = os.getenv("SF_SECURITY_TOKEN")
-SF_DOMAIN = 'test'  # Use 'test' if connecting to a Salesforce sandbox
+SF_DOMAIN = 'login'  # Use 'test' if connecting to a Salesforce sandbox
 
 # Connect to Salesforce
 try:
@@ -23,16 +26,13 @@ except Exception as e:
     st.error(f"Failed to connect to Salesforce: {e}")
 
 # Secret word password
-SECRET_WORD = "word"  # Replace with your actual secret word
-
-# Set the page title and icon
-st.set_page_config(page_title="Request Form", page_icon="📝")
+SECRET_WORD = "your_secret_word"  # Replace with your actual secret word
 
 # Title of the application
-st.title("PER Request Form")
+st.title("Secure Request Form")
 
 # Prompt for the secret word
-secret_input = st.text_input("Enter the security token provided by AHP to access the form:", type="password")
+secret_input = st.text_input("Enter the secret word to access the form:", type="password")
 
 # Check if the secret word is correct
 if secret_input == SECRET_WORD:
