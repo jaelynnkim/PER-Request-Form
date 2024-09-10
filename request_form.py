@@ -1,16 +1,38 @@
 import streamlit as st
+from simple_salesforce import Salesforce, SalesforceLogin
+import os
+
+# Salesforce credentials from environment variables
+SF_USERNAME = os.getenv("SF_USERNAME")  # No default value; ensure environment variable is set
+SF_PASSWORD = os.getenv("SF_PASSWORD")
+SF_SECURITY_TOKEN = os.getenv("SF_SECURITY_TOKEN")
+SF_DOMAIN = 'test'  # Use 'test' if connecting to a Salesforce sandbox
+
+# Connect to Salesforce
+try:
+    # Attempt to log in to Salesforce using credentials from environment variables
+    session_id, instance = SalesforceLogin(
+        username=SF_USERNAME, 
+        password=SF_PASSWORD, 
+        security_token=SF_SECURITY_TOKEN, 
+        domain=SF_DOMAIN
+    )
+    sf = Salesforce(session_id=session_id, instance=instance)
+    st.success("Connected to Salesforce successfully!")
+except Exception as e:
+    st.error(f"Failed to connect to Salesforce: {e}")
 
 # Secret word password
-SECRET_WORD = "your_secret_word"  # Replace with your actual secret word
+SECRET_WORD = "word"  # Replace with your actual secret word
 
 # Set the page title and icon
 st.set_page_config(page_title="Request Form", page_icon="📝")
 
 # Title of the application
-st.title("Secure Request Form")
+st.title("PER Request Form")
 
 # Prompt for the secret word
-secret_input = st.text_input("Enter the secret word to access the form:", type="password")
+secret_input = st.text_input("Enter the security token provided by AHP to access the form:", type="password")
 
 # Check if the secret word is correct
 if secret_input == SECRET_WORD:
@@ -38,21 +60,33 @@ if secret_input == SECRET_WORD:
         submit_button = st.form_submit_button(label='Submit')
 
         if submit_button:
-            st.success("Form submitted successfully!")
-            # Display submitted data for review
-            st.write("Here's what you've submitted:")
-            st.write({
-                "First Name": first_name,
-                "Middle Name": middle_name,
-                "Last Name": last_name,
-                "Preferred Email Address": preferred_email,
-                "Job Title": job_title,
-                "Practice Name": practice_name,
-                "Practice Address": practice_address,
-                "Supervisor Full Name": supervisor_name,
-                "Reasoning behind Request": reasoning,
-                "Has URMC account": has_urmc_account
-            })
+            # Create a Case object in Salesforce
+            try:
+                case = sf.Case.create({
+                    'Subject': f"Request from {first_name} {last_name}",
+                    'Description': reasoning,
+                    'SuppliedEmail': preferred_email,
+                    'SuppliedName': f"{first_name} {middle_name} {last_name}",
+                    # Replace 'Custom_Field__c' with your Salesforce field name
+                    'Custom_Field__c': 'Yes' if has_urmc_account == 'Yes' else 'No'  
+                })
+                st.success("Form submitted successfully and Case created in Salesforce!")
+                # Display submitted data for review
+                st.write("Here's what you've submitted:")
+                st.write({
+                    "First Name": first_name,
+                    "Middle Name": middle_name,
+                    "Last Name": last_name,
+                    "Preferred Email Address": preferred_email,
+                    "Job Title": job_title,
+                    "Practice Name": practice_name,
+                    "Practice Address": practice_address,
+                    "Supervisor Full Name": supervisor_name,
+                    "Reasoning behind Request": reasoning,
+                    "Has URMC account": has_urmc_account
+                })
+            except Exception as e:
+                st.error(f"Failed to create Case in Salesforce: {e}")
 
 else:
     if secret_input:
