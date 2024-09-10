@@ -27,7 +27,12 @@ if secret_input == SECRET_WORD:
         practice_address = st.text_input("Practice Address")
         supervisor_name = st.text_input("Supervisor Full Name")
         reasoning = st.text_area("Reasoning behind Request")
-        has_urmc_account = st.checkbox("Already have URMC account for eRecords or prior engagement?")
+        
+        # Modified question with radio buttons for Yes/No
+        has_urmc_account = st.radio(
+            "Already have URMC account for eRecords or prior engagement?",
+            options=["Yes", "No"]
+        )
 
         # Submit button
         submit_button = st.form_submit_button(label='Submit')
